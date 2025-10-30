@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Passby | Get Started</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+
+    <style>
+        :root {
+            --background: #121212;
+            --foreground-primary: #FFFFFF;
+            --foreground-secondary: #b3b3b3;
+            --card: #1e1e1e;
+            --border: #333333;
+            --input: #2a2a2a;
+            --accent: #FFFFFF; 
+            --radius: 8px;
+            --growth-green: #1DB954;
+            --growth-red: #e74c3c;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Space Mono', monospace; 
+            background-color: var(--background);
+            color: var(--foreground-primary);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .main-container {
+            width: 100%;
+            background-color: var(--card);
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .stepper-nav {
+            display: flex; background-color: #252525; padding: 1rem 2rem;
+            border-bottom: 1px solid var(--border);
+        }
+        .step {
+            flex: 1; text-align: center; color: var(--foreground-secondary);
+            font-weight: 700; padding-bottom: 1rem; border-bottom: 3px solid transparent;
+            position: relative; text-transform: lowercase; font-size: 0.9rem;
+            transition: color 0.3s ease;
+        }
+        .step.active, .step.completed {
+            color: var(--foreground-primary);
+        }
+        .step.active {
+             border-bottom-color: var(--accent);
+        }
+        .step-number {
+            background-color: var(--border); color: var(--foreground-secondary); border-radius: 50%;
+            width: 24px; height: 24px; display: inline-block; line-height: 24px;
+            font-size: 0.8rem; margin-right: 0.5rem; transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        .step.active .step-number {
+            background-color: var(--accent); color: var(--background);
+        }
+        .step.completed .step-number::before {
+            content: '✓'; font-weight: 700;
+        }
+        .step.completed .step-number {
+            background-color: var(--accent); color: var(--background);
+        }
+
+
+        .form-content { padding: 3rem; }
+        .form-step { display: none; }
+        .form-step.active { display: block; }
+
+        h2, h3, h4 { font-weight: 700; color: var(--foreground-primary); }
+        h2 { font-size: 2rem; margin-bottom: 0.5rem; }
+        h3 { font-size: 1.5rem; margin-bottom: 1.5rem; }
+        p { color: var(--foreground-secondary); margin-bottom: 2rem; }
+
+        .form-group { margin-bottom: 1.5rem; }
+        label { display: block; margin-bottom: 0.5rem; font-weight: 700; }
+        
+        /* FIX: Using float for robust 2-column layout */
+        .form-row::after {
+            content: "";
+            display: table;
+            clear: both;
+        }
+        .form-row .form-group {
+            float: left;
+            width: 50%;
+        }
+        .form-row .form-group:first-child {
+            padding-right: 0.75rem;
+        }
+        .form-row .form-group:last-child {
+            padding-left: 0.75rem;
+        }
+
+
+        input[type="text"], input[type="email"], select {
+            width: 100%; background-color: var(--input); border: 1px solid var(--border);
+            color: var(--foreground-primary); padding: 0.75rem 1rem; border-radius: var(--radius); 
+            font-size: 1rem; font-family: 'Space Mono', monospace;
+        }
+        
+        .brand-search-trigger {
+            cursor: pointer; position: relative;
+        }
+        .brand-search-trigger::after {
+            content: '⌕'; position: absolute; right: 1rem; top: 50%;
+            transform: translateY(-50%); color: var(--foreground-secondary);
+        }
+        
+        .modal-results .option-logo, .brand-metadata .brand-logo { 
+            width: 40px; height: 40px; border-radius: 50%; object-fit: cover;
+            background-color: #fff; flex-shrink: 0; border: 2px solid var(--border);
+            overflow: hidden; 
+        }
+        .brand-metadata {
+            display: flex; align-items: center; gap: 1.5rem; background-color: var(--input);
+            border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem;
+            margin-top: 1rem; display: none;
+        }
+        .brand-metadata .brand-logo { width: 60px; height: 60px; } 
+        .brand-info h4 { margin: 0; font-size: 1.2rem; }
+        .brand-info p { margin: 0.25rem 0 0; color: var(--foreground-secondary); font-size: 0.9rem; }
+        .brand-stats { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.9rem; margin-left: auto; text-align: right; }
+        .brand-stats div { color: var(--foreground-primary); }
+        
+        .error-message { color: var(--growth-red); font-size: 0.9rem; margin-top: 0.5rem; display: none; }
+        .has-error { border-color: var(--growth-red) !important; }
+        
+        .map-container {
+            position: relative; background: url('https://passby.com/docs/data/Screenshot%202025-10-06%20at%2012.23.49.png') no-repeat center center;
+            background-size: cover; border-radius: var(--radius); border: 1px solid var(--border);
+        }
+        .form-step .map-container { height: 300px; }
+        
+        .map-overlay {
+            position: absolute; top: 1rem; left: 1rem; background: rgba(30, 30, 30, 0.9);
+            padding: 1rem; border-radius: var(--radius); backdrop-filter: blur(5px);
+        }
+        .map-overlay p { margin: 0.25rem 0 0; font-size: 0.9rem; }
+
+        .tag-group { display: flex; flex-wrap: wrap; gap: 0.75rem; }
+        .tag {
+            background-color: var(--input); border: 1px solid var(--border); padding: 0.5rem 1rem;
+            border-radius: 20px; cursor: pointer; transition: all 0.2s ease;
+        }
+        .tag.selected { background-color: #444; border-color: var(--accent); } 
+        .tag-group.has-error { padding: 0.5rem; border: 1px solid var(--growth-red); border-radius: var(--radius); }
+
+        .review-panel { display: flex; gap: 2rem; align-items: stretch; }
+        .review-summary { flex: 1; }
+        .review-summary .summary-item { margin-bottom: 1rem; border-left: 3px solid var(--accent); padding-left: 1rem; }
+        .review-summary .summary-item strong { display: block; color: var(--foreground-secondary); }
+        .review-panel .map-container { flex: 1; }
+
+        .nav-buttons {
+            display: flex; justify-content: flex-end; margin-top: 3rem; border-top: 1px solid var(--border); padding-top: 2rem;
+        }
+        .btn-container { display: flex; gap: 1rem; }
+        .btn {
+            background: var(--input); color: var(--foreground-primary); border: 1px solid var(--border);
+            padding: 0.75rem 1.5rem; font-size: 1rem; font-weight: 700; border-radius: var(--radius);
+            cursor: pointer; transition: all 0.2s ease; font-family: 'Space Mono', monospace;
+        }
+        .btn:hover { border-color: var(--foreground-secondary); }
+        .btn-primary { background: var(--accent); border-color: var(--accent); color: var(--background); font-weight: 700; } 
+        .btn-primary:hover { opacity: 0.9; border-color: var(--accent); }
+        #prevBtn { visibility: hidden; }
+
+        /* Modal Styles */
+        .modal-container {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8); backdrop-filter: blur(10px);
+            display: none; justify-content: center; align-items: center; z-index: 2000;
+        }
+        .modal-content {
+            background: var(--card); border: 1px solid var(--border);
+            border-radius: var(--radius); width: 90%; max-width: 700px;
+            display: flex; flex-direction: column; max-height: 80vh;
+        }
+        .modal-header { padding: 1.5rem; border-bottom: 1px solid var(--border); position: relative; }
+        .modal-header .close-btn {
+            position: absolute; top: 1.5rem; right: 1.5rem;
+            background: none; border: none; color: var(--foreground-secondary);
+            font-size: 2rem; line-height: 1; cursor: pointer;
+        }
+        .modal-body { padding: 1.5rem; overflow-y: auto; }
+        #modal-search-input { 
+            background-color: var(--input); border: 1px solid var(--border); color: var(--foreground-primary);
+            margin-bottom: 1rem;
+        }
+        .modal-results { padding: 0 0.5rem; }
+        .modal-results .option-layout {
+            cursor: pointer; border-radius: var(--radius); margin-bottom: 0.5rem;
+            transition: background-color 0.2s ease;
+        }
+        .modal-results .option-layout:hover { background-color: var(--input); }
+        .option-layout .option-details { min-width: 0; } 
+        .option-layout .option-details strong { white-space: nowrap; display: block; }
+        .growth-positive { color: var(--growth-green) !important; font-weight: 700; } 
+        .growth-negative { color: var(--growth-red) !important; font-weight: 700; }
+        
+        .thank-you-message { text-align: center; padding: 4rem 2rem; }
+        .thank-you-message .icon { font-size: 4rem; margin-bottom: 1rem; color: var(--accent); }
+    </style>
+</head>
+<body>
+
+    <div class="main-container">
+        <div class="stepper-nav">
+            <div class="step active" data-step="1"><span class="step-number">1</span> your brand</div>
+            <div class="step" data-step="2"><span class="step-number">2</span> provide context</div>
+            <div class="step" data-step="3"><span class="step-number">3</span> goals</div>
+            <div class="step" data-step="4"><span class="step-number">4</span> get access</div>
+        </div>
+
+        <div class="form-content">
+            <form id="multiStepForm">
+                <div class="form-step active" id="step-1">
+                    <h2>Get your causal analysis</h2><p>Let's start by getting to know you and your brand.</p>
+                    <div class="form-row">
+                        <div class="form-group"><label for="first-name">First Name</label><input type="text" id="first-name" name="first-name" required></div>
+                        <div class="form-group"><label for="last-name">Last Name</label><input type="text" id="last-name" name="last-name" required></div>
+                    </div>
+                    <div class="form-group"><label for="email">Work Email</label><input type="email" id="email" name="email" required></div>
+                    <div class="form-group">
+                        <label for="brand-search-trigger">Find Your Brand</label>
+                        <input type="text" id="brand-search-trigger" class="brand-search-trigger" placeholder="Click to search for a brand..." readonly>
+                        <input type="hidden" id="selected-brand-name">
+                        <div id="brand-select-error" class="error-message"></div>
+                    </div>
+                    <div class="brand-metadata" id="brand-metadata-display">
+                        <img id="brand-logo-img" src="" alt="Brand Logo" class="brand-logo">
+                        <div class="brand-info"><h4 id="brand-name-display"></h4><p id="brand-category-display"></p></div>
+                        <div class="brand-stats"><div id="brand-stores-display"></div><div id="brand-growth-display"></div></div>
+                    </div>
+                </div>
+
+                <div class="form-step" id="step-2">
+                    <h2>Brand Context</h2><p>Here's a look at your brand's footprint across the US.</p>
+                     <div class="map-container">
+                        <div class="map-overlay"><h4 id="map-overlay-brand"></h4><p id="map-overlay-category"></p><p id="map-overlay-stores"></p><p id="map-overlay-growth"></p></div>
+                     </div>
+                     <div class="form-group" style="margin-top: 2rem;"><label for="department">What is your department?</label><select id="department" name="department"><option>Real Estate & Development</option><option>Marketing & Brand Strategy</option><option>Operations & Performance</option><option>Analytics & Research</option><option>Executive Leadership</option></select></div>
+                </div>
+
+                <div class="form-step" id="step-3">
+                    <h2>What are your goals?</h2><p>Help us understand your needs by selecting your team's top challenges.</p>
+                    <div class="form-group"><label>Generations</label><div class="tag-group generation-tags"><div class="tag">Gen Z</div><div class="tag">Millennials</div><div class="tag">Gen X</div><div class="tag">Baby Boomers</div><div class="tag">Silent Gen</div></div></div>
+                    <div class="form-group"><label>Segments</label><div class="tag-group segment-tags"><div class="tag">Affluent</div><div class="tag">Families</div><div class="tag">Students</div><div class="tag">Urbanites</div><div class="tag">Suburban</div><div class="tag">Rural</div><div class="tag">Tourists</div></div></div>
+                    <div class="form-group"><label for="challenges-container">What are your team's challenges?</label><div class="tag-group" id="challenges-container"></div></div>
+                    <div id="challenges-error" class="error-message"></div>
+                </div>
+
+                <div class="form-step" id="step-4">
+                    <h2>Review and Get Your Report</h2><p>You're all set! Review your details below and we'll follow up with your report.</p>
+                    <div class="review-panel">
+                        <div class="review-summary">
+                            <h3>Your Summary</h3>
+                            <div class="summary-item"><strong>Brand</strong><span id="summary-brand"></span></div>
+                            <div class="summary-item"><strong>Category</strong><span id="summary-category"></span></div>
+                            <div class="summary-item"><strong>YoY Growth</strong><span id="summary-growth"></span></div>
+                            <div class="summary-item"><strong>Department</strong><span id="summary-department"></span></div>
+                            <div class="summary-item"><strong>Top Challenges</strong><span id="summary-challenges"></span></div>
+                        </div>
+                        <div class="map-container">
+                           <div class="map-overlay"><h4 id="review-map-brand"></h4><p id="review-map-category"></p><p id="review-map-stores"></p><p id="review-map-growth"></p></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-step" id="step-5">
+                    <div class="thank-you-message">
+                        <div class="icon">✓</div>
+                        <h2>Submission Complete</h2>
+                        <p>Thank you. We've received your information and will send a confirmation to your email shortly.</p>
+                    </div>
+                </div>
+
+                <div class="nav-buttons">
+                    <div class="btn-container">
+                        <button type="button" id="prevBtn" class="btn">Back</button>
+                        <button type="button" id="nextBtn" class="btn btn-primary">Next</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <div class="modal-container" id="brand-search-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Find Your Brand</h3>
+                <button class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="text" id="modal-search-input" placeholder="Search by brand name...">
+                <div class="modal-results" id="modal-results-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        $(document).ready(function() {
+            const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx4_7uFw_cLk1X8Nars-rEIoKIZrgCiqo3JvAGvqk8GVjwVw3PHx-GtTvxwa6MuxnerVQ/exec';
+            let currentStep = 1; const totalSteps = 5; let brandData = [];
+            const dataUrl = 'https://passby.com/docs/data/script_job_e4005717792935135463cbeab1a5fd52_0.csv';
+            const genericIconUrl = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iIzEyMTIxMiI+PHBhdGggZD0iTTE4IDZWNkgxNVY0SDlWNkg2VjRoLTJ2M0g0VjRoLTJ2M0gydjE1aDIwdjRIMjJWM2gtMnYxek0xMCAxNUgxNlY4SDEwVjE1Wk00IDE5VjExSDhWMTlINFpNMTAgMTlWMTdIMTZWMTlIMTBaTTE4IDE5VjExSDIyVjE1SDE4WiIvPjwvc3ZnPg==';
+
+            const challenges = {
+                real_estate: ["Find new store locations", "Cannibalization analysis", "Portfolio optimization", "Market entry strategy", "Competitor footprint analysis", "Site scoring & ranking", "Lease renewal decisions", "Understand trade area demographics", "Analyze foot traffic patterns", "Validate broker recommendations"],
+                marketing: ["Measure campaign effectiveness", "Audience segmentation", "Geofenced advertising", "Understand customer journey", "Analyze brand affinity", "OOH advertising placement", "Sponsorship impact analysis", "Identify co-tenancy opportunities", "Define target personas", "Optimize media spend"],
+                operations: ["Benchmark against competitors", "Understand regional performance", "Staffing optimization", "Analyze impact of store hours", "Identify underperforming stores", "Diagnose visit spikes/dips", "Impact of local events", "Weather impact analysis", "Loyalty program effectiveness", "Real-time performance alerts"],
+                analytics: ["Build predictive models", "Data visualization & BI", "Create custom reports", "ETL & Data pipeline management", "Customer Lifetime Value (CLV)", "Market basket analysis", "A/B testing framework", "Attribution modeling", "API integration", "Data quality assurance"],
+                executive: ["Strategic growth planning", "Market share analysis", "SWOT analysis", "Mergers & acquisitions (M&A)", "Investor relations reporting", "Quarterly business review (QBR)", "Long-range forecasting", "Crisis management insights", "Sustainability (ESG) metrics", "New market evaluation"]
+            };
+
+            const departmentToChallengeKey = {
+                "Real Estate & Development": "real_estate", "Marketing & Brand Strategy": "marketing",
+                "Operations & Performance": "operations", "Analytics & Research": "analytics", "Executive Leadership": "executive"
+            };
+            
+            function escapeHtml(str) {
+                if (str === null || str === undefined) return '';
+                return String(str).replace(/[&<>"']/g, s => ({'&': '&amp;','<': '&lt;','>': '&gt;','"': '&quot;',"'": '&#39;'})[s]);
+            }
+
+            function fetchData() {
+                Papa.parse(dataUrl, {
+                    download: true, header: true, dynamicTyping: true, skipEmptyLines: true,
+                    complete: function(results) { brandData = results.data; renderModalResults(brandData); },
+                    error: function(error) { console.error('Papa Parse Error:', error); $('#brand-select-error').text('Could not load brand data.').show(); }
+                });
+            }
+
+            function renderModalResults(data) {
+                const list = $('#modal-results-list');
+                list.empty();
+                data.forEach(item => {
+                    if (!item.name) return;
+                    const growth = parseFloat(item.yoy_visit_change_pct);
+                    const growthFormatted = !isNaN(growth) ? growth.toFixed(2) + '%' : 'N/A';
+                    const growthClass = isNaN(growth) ? '' : (growth >= 0 ? 'growth-positive' : 'growth-negative');
+                    const arrow = isNaN(growth) ? '' : (growth >= 0 ? '▲' : '▼');
+                    const logoUrl = (item.logo && typeof item.logo === 'string' && item.logo.trim().startsWith('http')) ? item.logo.trim() : genericIconUrl;
+
+                    const resultHtml = `<div class="option-layout" data-brand-name="${escapeHtml(item.name)}"><img class="option-logo" src="${escapeHtml(logoUrl)}" alt="${escapeHtml(item.name)} logo"><div class="option-details"><strong>${escapeHtml(item.name)}</strong><span>${escapeHtml(item.top_category) || 'Uncategorized'}</span></div><div class="option-stats"><div>~${item.place_count || 0} stores</div><div class="${growthClass}">YoY%: ${arrow} ${growthFormatted}</div></div></div>`;
+                    list.append(resultHtml);
+                });
+            }
+            
+            function selectBrand(brandName) {
+                const selectedBrand = brandData.find(b => b.name === brandName);
+                if (selectedBrand) {
+                    $('#brand-search-trigger').val(selectedBrand.name).removeClass('has-error');
+                    $('#selected-brand-name').val(selectedBrand.name);
+                    $('#brand-select-error').hide();
+                    
+                    const growth = parseFloat(selectedBrand.yoy_visit_change_pct);
+                    const growthFormatted = !isNaN(growth) ? growth.toFixed(2) + '%' : 'N/A';
+                    const growthClass = isNaN(growth) ? '' : (growth >= 0 ? 'growth-positive' : 'growth-negative');
+                    const arrow = isNaN(growth) ? '' : (growth >= 0 ? '▲' : '▼');
+                    const logoUrl = (selectedBrand.logo && typeof selectedBrand.logo === 'string' && selectedBrand.logo.trim().startsWith('http')) ? selectedBrand.logo.trim() : genericIconUrl;
+
+                    $('#brand-metadata-display').fadeIn();
+                    $('#brand-logo-img').attr('src', logoUrl);
+                    $('#brand-name-display').text(selectedBrand.name);
+                    $('#brand-category-display').text(selectedBrand.top_category || 'Uncategorized');
+                    $('#brand-stores-display').text(`~${selectedBrand.place_count || 0} stores`);
+                    $('#brand-growth-display').text(`YoY%: ${arrow} ${growthFormatted}`).removeClass('growth-positive growth-negative').addClass(growthClass);
+                    
+                    closeModal();
+                }
+            }
+
+            function openModal() { $('#brand-search-modal').css('display', 'flex').hide().fadeIn(200); $('#modal-search-input').focus(); }
+            function closeModal() { $('#brand-search-modal').fadeOut(200); }
+
+            function updateChallenges(jobTitleKey) {
+                const container = $('#challenges-container'); container.empty();
+                const challengeList = challenges[jobTitleKey] || [];
+                challengeList.forEach(challenge => { container.append(`<div class="tag">${challenge}</div>`); });
+            }
+
+            function validateStep(step) {
+                let isValid = true;
+                $('.has-error').removeClass('has-error');
+                $('.error-message').hide();
+
+                if (step === 1) {
+                    if (!$('#first-name').val()) { $('#first-name').addClass('has-error'); isValid = false; }
+                    if (!$('#last-name').val()) { $('#last-name').addClass('has-error'); isValid = false; }
+                    if (!$('#email').val()) { $('#email').addClass('has-error'); isValid = false; }
+                    if (!$('#selected-brand-name').val()) {
+                        $('#brand-search-trigger').addClass('has-error');
+                        $('#brand-select-error').text('Please select your brand.').show();
+                        isValid = false;
+                    }
+                }
+                if (step === 3) {
+                    let hasError = false;
+                    if ($('.generation-tags .tag.selected').length === 0) {
+                        $('.generation-tags').addClass('has-error'); hasError = true;
+                    }
+                    if ($('.segment-tags .tag.selected').length === 0) {
+                        $('.segment-tags').addClass('has-error'); hasError = true;
+                    }
+                     if ($('#challenges-container .tag.selected').length === 0) {
+                        $('#challenges-container').addClass('has-error'); hasError = true;
+                    }
+                    if (hasError) {
+                         $('#challenges-error').text('Please make at least one selection for each category.').show();
+                         isValid = false;
+                    }
+                }
+                return isValid;
+            }
+
+            function updateStepView() {
+                $('.form-step').removeClass('active'); 
+                $(`#step-${currentStep}`).addClass('active');
+                
+                $('.step').removeClass('active completed');
+                $('.step').each(function(index) {
+                    const stepNumberEl = $(this).find('.step-number');
+                    const stepNumber = index + 1;
+                    if (stepNumber < currentStep) {
+                        $(this).addClass('completed');
+                        stepNumberEl.html('✓');
+                    } else if (stepNumber === currentStep) {
+                        $(this).addClass('active');
+                        stepNumberEl.text(stepNumber);
+                    } else {
+                        stepNumberEl.text(stepNumber);
+                    }
+                });
+
+                $('#prevBtn').css('visibility', currentStep > 1 && currentStep < 5 ? 'visible' : 'hidden');
+                
+                if (currentStep === 4) {
+                    $('#nextBtn').text('Confirm & Submit');
+                } else {
+                    $('#nextBtn').text('Next');
+                }
+                
+                if (currentStep >= 5) {
+                    $('.nav-buttons, .stepper-nav').hide();
+                } else {
+                    $('.nav-buttons, .stepper-nav').show();
+                }
+            }
+            
+            function collectFormData() {
+                const selectedBrandName = $('#selected-brand-name').val();
+                const selectedBrand = brandData.find(b => b.name === selectedBrandName) || {};
+                const generations = [];
+                $('.generation-tags .tag.selected').each(function() { generations.push($(this).text()); });
+                const segments = [];
+                $('.segment-tags .tag.selected').each(function() { segments.push($(this).text()); });
+                const challenges = [];
+                $('#challenges-container .tag.selected').each(function() { challenges.push($(this).text()); });
+                
+                return {
+                    firstName: $('#first-name').val(),
+                    lastName: $('#last-name').val(),
+                    email: $('#email').val(),
+                    brandName: selectedBrand.name,
+                    brandId: selectedBrand.pid,
+                    department: $('#department').val(),
+                    targetGen: generations.join(', '),
+                    segments: segments.join(', '),
+                    challenges: challenges.join(', ')
+                };
+            }
+
+            function populateSummary() {
+                const formData = collectFormData();
+                const selectedBrand = brandData.find(b => b.name === formData.brandName) || {};
+                const growth = parseFloat(selectedBrand.yoy_visit_change_pct);
+                const growthFormatted = !isNaN(growth) ? growth.toFixed(2) + '%' : 'N/A';
+                const growthClass = isNaN(growth) ? '' : (growth >= 0 ? 'growth-positive' : 'growth-negative');
+                const arrow = isNaN(growth) ? '' : (growth >= 0 ? '▲' : '▼');
+
+                $('#summary-brand').text(formData.brandName || 'Not selected');
+                $('#summary-category').text(selectedBrand.top_category || 'Uncategorized');
+                $('#summary-growth').text(`${arrow} ${growthFormatted}`).removeClass('growth-positive growth-negative').addClass(growthClass);
+                $('#summary-department').text(formData.department || 'Not selected');
+                $('#summary-challenges').text(formData.challenges || 'None selected');
+                
+                $('#map-overlay-brand, #review-map-brand').text(formData.brandName || '');
+                $('#map-overlay-category, #review-map-category').text(selectedBrand.top_category || '');
+                $('#map-overlay-stores, #review-map-stores').text(`~${selectedBrand.place_count || 0} stores`);
+                $('#map-overlay-growth, #review-map-growth').text(`YoY%: ${arrow} ${growthFormatted}`).removeClass('growth-positive growth-negative').addClass(growthClass);
+            }
+
+            function submitDataToGoogle(formData) {
+                if (!GOOGLE_SCRIPT_URL || GOOGLE_SCRIPT_URL === 'PASTE_YOUR_WEB_APP_URL_HERE') {
+                    console.error("Google Script URL is not set. Advancing for demo purposes.");
+                    currentStep++;
+                    updateStepView();
+                    return; 
+                }
+
+                const submitButton = $('#nextBtn');
+                submitButton.text('Submitting...').prop('disabled', true);
+
+                fetch(GOOGLE_SCRIPT_URL, {
+                    method: 'POST',
+                    body: JSON.stringify(formData)
+                })
+                .then(response => response.json())
+                .then(data => {
+                     console.log('Success:', data);
+                     currentStep++;
+                     updateStepView();
+                })
+                .catch(error => {
+                    console.error('Error submitting data:', error);
+                    alert('There was an error submitting your form. The server may be configured incorrectly. Please check the console for details.');
+                    submitButton.text('Confirm & Submit').prop('disabled', false); 
+                });
+            }
+
+            // REFACTORED NAVIGATION LOGIC
+            $('#nextBtn').on('click', function(e) {
+                if (!validateStep(currentStep)) {
+                    return;
+                }
+                
+                if (currentStep === 4) { // This is the submit action
+                    const formData = collectFormData();
+                    submitDataToGoogle(formData);
+                } else { // Action for all other 'Next' buttons
+                    currentStep++;
+                    if (currentStep === 3) {
+                        const selectedDepartment = $('#department').val();
+                        const challengeKey = departmentToChallengeKey[selectedDepartment] || 'operations';
+                        updateChallenges(challengeKey);
+                    }
+                    if (currentStep === 2 || currentStep === 4) { 
+                        populateSummary(); 
+                    }
+                    updateStepView();
+                }
+            });
+            
+            $('#brand-search-trigger').on('click', openModal);
+            $('.modal-container .close-btn, .modal-container').on('click', function(e) {
+                if ($(e.target).is('.modal-container, .close-btn')) closeModal();
+            });
+
+            $('#modal-search-input').on('input', function() {
+                const searchTerm = $(this).val().toLowerCase();
+                const filteredData = brandData.filter(b => b.name && String(b.name).toLowerCase().includes(searchTerm));
+                renderModalResults(filteredData);
+            });
+            $('#modal-results-list').on('click', '.option-layout', function() {
+                selectBrand($(this).data('brand-name'));
+            });
+
+            $('#prevBtn').on('click', function() { if (currentStep > 1) { currentStep--; updateStepView(); } });
+            $(document).on('click', '.tag', function() { $(this).toggleClass('selected'); });
+        
+            fetchData();
+            updateStepView();
+        });
+    </script>
+</body>
+</html>
