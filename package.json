@@ -1,19 +1,8 @@
 {
-  "name": "retail-index-dev",
-  "version": "1.0.0",
-  "main": "index.js",
+  "name": "retail-index-static",
+  "version": "1.1.0",
+  "private": true,
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "http-server ."
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "devDependencies": {
-    "http-server": "^14.1.1"
-  },
-  "description": "",
-  "dependencies": {
-    "geist": "^1.5.1"
+    "build:brands": "node scripts/generate-brand-pages.js"
   }
 }

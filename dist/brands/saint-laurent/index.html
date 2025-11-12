@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Retail Health Index</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    
+    <link rel="stylesheet" href="../../style.css">
+
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+</head>
+<body data-page-type="brand" data-home-url="../../index.html" data-data-url="../../data.json" data-brand-name="Saint Laurent">
+
+    <div id="page-container">
+        <header id="page-header">
+            <a href="../../index.html" class="header-logo" aria-label="Homepage">
+                <img src="https://passby.com/wp-content/uploads/2023/09/logo-dark.png" alt="pass_by Logo">
+            </a>
+            <div class="search-container">
+                <i class="fas fa-search search-icon"></i>
+                <input type="text" id="mainSearchInput" placeholder="Search for Nike, Target, Starbucks..." onfocus="showSuggestions()" onblur="hideSuggestions()" oninput="handleSearchInput(this.value)">
+                <div id="suggestionsDropdown" class="suggestions-dropdown"></div>
+            </div>
+        </header>
+
+        <main id="content">
+            
+            <a href="../../index.html" class="back-link">&larr; Back to Brand List</a>
+            
+            <div class="brand-header-fullwidth">
+                <div class="brand-header">
+                     <div class="logo-container">
+                         <img src="https://storage.googleapis.com/almanac-cdn-dev/brand-logos/SG_BRAND_3d459942728f7a636ce726527858d8f8.png" alt="Saint Laurent" class="logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';">
+               <span class="logo-placeholder" style="display: none;"><i class="fas fa-store"></i></span>
+                     </div>
+                     <div class="brand-details">
+                         <h1>Saint Laurent</h1>
+                         <div class="meta-data">
+                             <span><i><i class="fas fa-dollar-sign"></i></i> N/A</span>
+                             <span><i><i class="fas fa-store"></i></i> 57 Stores</span>
+                             <span><i><i class="fas fa-link"></i></i> <a class="website-link" href="http://www.ysl.com" target="_blank">www.ysl.com</a></span>
+                         </div>
+                          <p class="categories">
+                              <span class="category-pill">Clothing Stores</span>
+                              <span class="category-pill">Women's Clothing Stores</span>
+                          </p>
+                     </div>
+                </div>
+                <div class="score-header">
+                     <div class="score-block">
+                         <div class="score-widget-circle" style="background: conic-gradient(var(--positive-color) 302.40000000000003deg, var(--border-color) 302.40000000000003deg 360deg);"><span>84</span></div>
+                         <div class="score-details"><span class="score-label">Growth Score</span><span class="score-value">84</span><span class="score-change positive">+14 MoM</span></div>
+                         <span class="tooltip-container"><i class="tooltip-icon">?</i><span class="tooltip-text">Long-term growth momentum (YoY trends).</span></span>
+                     </div>
+                     <div class="score-block">
+                          <div class="score-widget-circle" style="background: conic-gradient(var(--positive-color) 273.6deg, var(--border-color) 273.6deg 360deg);"><span>76</span></div>
+                          <div class="score-details"><span class="score-label">Heat Score</span><span class="score-value">76</span><span class="score-change positive">+22 MoM</span></div>
+                         <span class="tooltip-container"><i class="tooltip-icon">?</i><span class="tooltip-text">Short-term 'hotness' (Index MoM changes).</span></span>
+                     </div>
+                     <div class="score-block">
+                          <div class="score-widget-circle" style="background: conic-gradient(var(--positive-color) 291.6deg, var(--border-color) 291.6deg 360deg);"><span>81</span></div>
+                          <div class="score-details"><span class="score-label">Total Score</span><span class="score-value">81</span><span class="score-change positive">+17 MoM</span></div>
+                         <span class="tooltip-container"><i class="tooltip-icon">?</i><span class="tooltip-text">Combined Growth & Heat score average.</span></span>
+                     </div>
+                </div>
+            </div>
+
+            <div class="brand-page-layout">
+                <div class="brand-main-content-wrapper">
+                    <div class="promo-banner" style="background-image: url('https://passby.com/wp-content/uploads/2025/10/Artboard-scaled.jpg');" onclick="document.getElementById('custom-html-card').scrollIntoView({ behavior: 'smooth' });">
+                         <p>Unlock the full story behind Saint Laurent's performance with <a href="https://passby.com" target="_blank">Pass_by Pro</a>. See causal drivers, competitor benchmarks, and more.</p>
+                    </div>
+
+                     <section id="section-health-scores" class="section-widget">
+                         <h3>Health Score Trends</h3>
+                         <div id="healthScoreTrendChartContainer" class="chart-container"></div>
+                     </section>
+
+                     <section id="section-top-stores" class="section-widget">
+                         <h3>Top Stores</h3>
+                         <table class="data-table-header-only">
+                            <thead>
+                                <tr>
+                                    <th>Store Name</th>
+                                    <th>Address</th>
+                                    <th>YoY Visits</th>
+                                    <th>YoY Spend</th>
+                                    <th>YoY Transactions</th>
+                                </tr>
+                            </thead>
+                         </table>
+                         <div class="blurred-section" data-scroll-target="custom-html-card" style="margin-top: -1px; border-top-left-radius: 0; border-top-right-radius: 0;">
+                            <div class="blurred-section-content" style="filter: blur(5px);">
+                                <p>Full store-level insights available with pass_by pro.</p>
+                            </div>
+                            <div class="blur-overlay"><i class="fas fa-lock"></i> Unlock store rankings</div>
+                         </div>
+                     </section>
+
+                     <section id="section-visits" class="section-widget">
+                         <h3>Visits</h3>
+                         <div class="data-snippet-header">
+                             <div class="snippet"><span class="snippet-label">Latest Visit Index (Nov '25)</span><span class="snippet-value">0</span></div>
+                             <div class="snippet"><span class="snippet-label">Visit Index Change (MoM)</span><span class="snippet-value negative">−21.79%</span></div>
+                             <div class="snippet"><span class="snippet-label">Latest Visit YoY (Nov '25)</span><span class="snippet-value positive">+3.42%</span></div>
+                         </div>
+                         <div class="blurred-section" data-scroll-target="custom-html-card">
+                             <div class="blurred-section-content">
+                               <div class="chart-pair">
+                                  <div id="visitsYoYChartContainer" class="chart-container"></div>
+                                  <div id="visitsIndexChartContainer" class="chart-container"></div>
+                               </div>
+                             </div>
+                             <div class="blur-overlay"><i class="fas fa-lock"></i> Get full historical data with pass_by pro</div>
+                         </div>
+                     </section>
+
+                     <section id="section-spend" class="section-widget">
+                          <h3>Spend</h3>
+                          <div class="data-snippet-header">
+                             <div class="snippet"><span class="snippet-label">Latest Spend Index (Nov '25)</span><span class="snippet-value">64</span></div>
+                             <div class="snippet"><span class="snippet-label">Spend Index Change (MoM)</span><span class="snippet-value positive">+102.15%</span></div>
+                             <div class="snippet"><span class="snippet-label">Latest Spend YoY (Nov '25)</span><span class="snippet-value positive">+114.75%</span></div>
+                          </div>
+                          <div class="blurred-section" data-scroll-target="custom-html-card">
+                             <div class="blurred-section-content">
+                               <div class="chart-pair">
+                                  <div id="spendYoYChartContainer" class="chart-container"></div>
+                                  <div id="spendIndexChartContainer" class="chart-container"></div>
+                               </div>
+                             </div>
+                             <div class="blur-overlay"><i class="fas fa-lock"></i> Get full historical data with pass_by pro</div>
+                          </div>
+                     </section>
+
+                     <section id="section-transactions" class="section-widget">
+                          <h3>Transactions</h3>
+                           <div class="data-snippet-header">
+                             <div class="snippet"><span class="snippet-label">Latest Txn Index (Nov '25)</span><span class="snippet-value">20</span></div>
+                             <div class="snippet"><span class="snippet-label">Txn Index Change (MoM)</span><span class="snippet-value positive">+47.29%</span></div>
+                             <div class="snippet"><span class="snippet-label">Latest Txn YoY (Nov '25)</span><span class="snippet-value positive">+61.43%</span></div>
+                           </div>
+                           <div class="blurred-section" data-scroll-target="custom-html-card">
+                             <div class="blurred-section-content">
+                               <div class="chart-pair">
+                                  <div id="txnsYoYChartContainer" class="chart-container"></div>
+                                  <div id="txnsIndexChartContainer" class="chart-container"></div>
+                               </div>
+                             </div>
+                             <div class="blur-overlay"><i class="fas fa-lock"></i> Get full historical data with pass_by pro</div>
+                           </div>
+                     </section>
+
+                     <section id="custom-html-card" class="section-widget">
+                         
+        <div class="main-container">
+            <div class="stepper-nav">
+                <div class="step active" data-step="1"><span class="step-number">1</span> your brand</div>
+                <div class="step" data-step="2"><span class="step-number">2</span> provide context</div>
+                <div class="step" data-step="3"><span class="step-number">3</span> goals</div>
+                <div class="step" data-step="4"><span class="step-number">4</span> get access</div>
+            </div>
+
+            <div class="form-content">
+                <form id="multiStepForm">
+                    <div class="form-step active" id="step-1">
+                        <h2>Get your causal analysis</h2><p>Let's start by getting to know you and your brand.</p>
+                        <div class="form-row">
+                            <div class="form-group"><label for="first-name">First Name</label><input type="text" id="first-name" name="first-name" required></div>
+                            <div class="form-group"><label for="last-name">Last Name</label><input type="text" id="last-name" name="last-name" required></div>
+                        </div>
+                        <div class="form-group"><label for="email">Work Email</label><input type="email" id="email" name="email" required></div>
+                        <div class="form-group brand-search-trigger"><label for="brand">Brand</label><input type="text" id="brand" name="brand" readonly placeholder="Search brand" value="Saint Laurent"></div>
+                        <div class="form-group"><label for="department">Department</label><select id="department" name="department"><option value="" disabled selected>Select your department</option><option>Real Estate & Development</option><option>Marketing & Brand Strategy</option><option>Operations & Performance</option><option>Analytics & Research</option><option>Executive Leadership</option></select></div>
+                        <div id="brand-select-error" class="error-message"></div>
+                    </div>
+
+                    <div class="form-step" id="step-2">
+                        <h2>Provide Context</h2><p>Tell us more about Saint Laurent. Good context gives you better recommendations.</p>
+                        <div class="form-row">
+                            <div class="form-group"><label for="title">Your Title</label><input type="text" id="title" name="title"></div>
+                            <div class="form-group"><label for="phone">Phone (optional)</label><input type="text" id="phone" name="phone"></div>
+                        </div>
+                        <div class="form-group"><label for="location">Primary Region of Focus</label><input type="text" id="location" name="location" placeholder="e.g., Southeast, Southern California"></div>
+                        <div class="form-group"><label for="timeline">Desired Timeline</label><select id="timeline" name="timeline"><option value="" disabled selected>Select timeline</option><option>ASAP</option><option>2-4 Weeks</option><option>1-3 Months</option><option>3-6 Months</option><option>6+ Months</option></select></div>
+                    </div>
+
+                    <div class="form-step" id="step-3">
+                        <h2>What are your goals?</h2><p>Help us understand your needs by selecting your team's top challenges.</p>
+                        <div class="form-group"><label>Generations</label><div class="tag-group generation-tags"><div class="tag">Gen Z</div><div class="tag">Millennials</div><div class="tag">Gen X</div><div class="tag">Baby Boomers</div><div class="tag">Silent Gen</div></div></div>
+                        <div class="form-group"><label>Segments</label><div class="tag-group segment-tags"><div class="tag">Affluent</div><div class="tag">Families</div><div class="tag">Students</div><div class="tag">Urbanites</div><div class="tag">Suburban</div><div class="tag">Rural</div><div class="tag">Tourists</div></div></div>
+                        <div class="form-group"><label for="challenges-container">What are your team's challenges?</label><div class="tag-group" id="challenges-container"></div></div>
+                        <div id="challenges-error" class="error-message"></div>
+                    </div>
+
+                    <div class="form-step" id="step-4">
+                        <h2>Review and Get Your Report</h2><p>You're all set! Review your details below and we'll follow up with your report.</p>
+                        <div class="review-panel">
+                            <div class="review-summary">
+                                <h3>Your Summary</h3>
+                                <div class="summary-item"><strong>Brand</strong><span id="summary-brand"></span></div>
+                                <div class="summary-item"><strong>Category</strong><span id="summary-category"></span></div>
+                                <div class="summary-item"><strong>YoY Growth</strong><span id="summary-growth"></span></div>
+                                <div class="summary-item"><strong>Department</strong><span id="summary-department"></span></div>
+                                <div class="summary-item"><strong>Top Challenges</strong><span id="summary-challenges"></span></div>
+                            </div>
+                            <div class="map-container">
+                               <div class="map-overlay"><h4 id="review-map-brand"></h4><p id="review-map-category"></p><p id="review-map-stores"></p><p id="review-map-growth"></p></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-step" id="step-5">
+                        <div class="thank-you-message">
+                            <div class="icon">✓</div>
+                            <h2>Submission Complete</h2>
+                            <p>Thank you. We've received your information and will send a confirmation to your email shortly.</p>
+                        </div>
+                    </div>
+
+                    <div class="nav-buttons">
+                        <div class="btn-container">
+                            <button type="button" id="prevBtn" class="btn">Back</button>
+                            <button type="button" id="nextBtn" class="btn btn-primary">Next</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <div class="modal-container" id="brand-search-modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Find Your Brand</h3>
+                    <button class="close-btn">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <input type="text" id="modal-search-input" placeholder="Search by brand name...">
+                    <div class="modal-results" id="modal-results-list"></div>
+                </div>
+            </div>
+        </div>
+    
+                     </section>
+                </div>
+                <aside class="brand-toc-sidebar">
+                    <h3>On this page</h3>
+                    <ul id="tocList"></ul>
+                </aside>
+            </div>
+        
+        </main>
+    </div>
+
+    
+    <script src="../../script.js"></script>
+</body>
+</html>
