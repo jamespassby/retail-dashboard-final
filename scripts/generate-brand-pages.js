@@ -7,6 +7,8 @@ const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Se
 
 const baseHtml = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 const brandData = JSON.parse(fs.readFileSync(path.join(ROOT, 'data.json'), 'utf8'));
+const USE_RELATIVE_LINKS = process.env.BRAND_RELATIVE_LINKS === 'true';
+const PUBLIC_BASE_URL = (process.env.PUBLIC_BASE_URL || '').replace(/\/$/, '');
 
 fs.rmSync(DIST, { recursive: true, force: true });
 fs.mkdirSync(path.join(DIST, 'brands'), { recursive: true });
@@ -34,18 +36,27 @@ function copyStatic(fileName) {
     fs.copyFileSync(path.join(ROOT, fileName), path.join(DIST, fileName));
 }
 
-function buildBrandHtml(brand, homeUrl) {
-    const brandMarkup = buildBrandMarkup(brand, homeUrl);
-    const assetPrefix = homeUrl.endsWith('index.html') ? homeUrl.replace(/index\.html$/, '') : homeUrl;
-    const stylePath = `${assetPrefix}style.css`;
-    const scriptPath = `${assetPrefix}script.js`;
-    const dataPath = `${assetPrefix}data.json`;
+function buildBrandHtml(brand, homeRelative) {
+    const brandMarkup = buildBrandMarkup(brand, USE_RELATIVE_LINKS ? homeRelative : '/');
+    const relativeBase = homeRelative.replace(/index\.html$/, '');
+    const normalizedPrefix = USE_RELATIVE_LINKS
+        ? (relativeBase ? (relativeBase.endsWith('/') ? relativeBase : `${relativeBase}/`) : '')
+        : '/';
+    const stylePath = `${normalizedPrefix}style.css`;
+    const scriptPath = `${normalizedPrefix}script.js`;
+    const dataPath = `${normalizedPrefix}data.json`;
+    const homeUrl = USE_RELATIVE_LINKS ? homeRelative : '/';
+    const slug = slugify(brand.brand_name);
+    const metaDescription = createMetaDescription(brand);
+    const canonicalHref = PUBLIC_BASE_URL ? `${PUBLIC_BASE_URL}/brands/${slug}/` : '';
+
     let html = baseHtml;
-    html = html.replace('<body data-page-type="home" data-home-url="index.html" data-data-url="data.json">', `<body data-page-type="brand" data-home-url="${escapeAttr(homeUrl)}" data-data-url="${escapeAttr(dataPath)}" data-brand-name="${escapeAttr(brand.brand_name)}">`);
-    html = html.replace('href="./index.html"', `href="${homeUrl}"`);
-    html = html.replace('href="style.css"', `href="${stylePath}"`);
-    html = html.replace('src="script.js"></script>', `src="${scriptPath}"></script>`);
+    html = html.replace('<body data-page-type="home" data-home-url="/" data-data-url="/data.json">', `<body data-page-type="brand" data-home-url="${escapeAttr(homeUrl)}" data-data-url="${escapeAttr(USE_RELATIVE_LINKS ? dataPath : '/data.json')}" data-brand-name="${escapeAttr(brand.brand_name)}">`);
+    html = html.replace('<link rel="stylesheet" href="/style.css">', `<link rel="stylesheet" href="${USE_RELATIVE_LINKS ? stylePath : '/style.css'}">`);
+    html = html.replace('<script src="/script.js"></script>', `<script src="${USE_RELATIVE_LINKS ? scriptPath : '/script.js'}"></script>`);
     html = html.replace('<div class="loading">Loading Retail Data...</div>', brandMarkup);
+    html = html.replace('<title>Retail Health Index</title>', `<title>${escapeHtml(brand.brand_name)} – Retail Health Index</title>`);
+    html = html.replace('</head>', `    <meta name="description" content="${escapeAttr(metaDescription)}">\n${canonicalHref ? `    <link rel="canonical" href="${escapeAttr(canonicalHref)}">\n` : ''}</head>`);
     return html;
 }
 
@@ -324,6 +335,23 @@ function slugify(str) {
 
 function escapeAttr(value) {
     return String(value ?? '').replace(/"/g, '&quot;');
+}
+
+function escapeHtml(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+}
+
+function createMetaDescription(brand) {
+    const parts = [
+        `${brand.brand_name} retail health dashboard.`,
+        brand.top_category ? `Category: ${brand.top_category}.` : '',
+        brand.place_count ? `Approx. ${brand.place_count} locations.` : '',
+        brand.url ? `Site: ${brand.url}.` : ''
+    ];
+    return parts.filter(Boolean).join(' ');
 }
 
 function getLastNNumbers(arr, n) {

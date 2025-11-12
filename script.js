@@ -10,6 +10,16 @@ const chartColors = {
 const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const TRENDING_BRANDS = ["7-Eleven", "Shell Oil", "Dollar General"]; // Use brands from your data
 
+function slugifyBrandName(name = '') {
+    return String(name || '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+}
+function getBrandPageUrl(name) {
+    const slug = slugifyBrandName(name);
+    return slug ? `/brands/${slug}/` : '#';
+}
 // --- Homepage Table State Variables ---
 let processedHomepageData = [];
 let currentSortKey = 'currentRank';
@@ -367,9 +377,9 @@ function createHomeCard(brandData, title) {
     const currentGrowth = growthTimeSeries.scores[growthTimeSeries.scores.length - 1];
     const currentHeat = heatTimeSeries.scores[heatTimeSeries.scores.length - 1];
     const currentTotal = (currentGrowth !== null && currentHeat !== null) ? Math.round((currentGrowth + currentHeat) / 2) : null;
-    const brandSlug = encodeURIComponent(brandData.brand_name); const pageUrl = window.location.pathname;
+    const brandUrl = getBrandPageUrl(brandData.brand_name);
     const logoHtml = brandData.logo ? `<img src="${brandData.logo}" alt="${brandData.brand_name}" onerror="this.parentElement.innerHTML = '<span class=\'logo-placeholder\'><i class=\'fas fa-store\'></i></span>'">` : `<span class="logo-placeholder"><i class="fas fa-store"></i></span>`;
-    return `<div class="home-card"><h3>${title}</h3><a href="${pageUrl}?name=${brandSlug}" class="brand-link">${logoHtml}${brandData.brand_name}</a>${currentGrowth !== null ? `<p class="metric"><span class="metric-label">Growth:</span><span class="metric-value">${currentGrowth}</span></p>` : ''}${currentHeat !== null ? `<p class="metric"><span class="metric-label">Heat:</span><span class="metric-value">${currentHeat}</span></p>` : ''}${currentTotal !== null ? `<p class="metric"><span class="metric-label">Total Score:</span><span class="metric-value">${currentTotal}</span></p>` : ''}</div>`;
+    return `<div class="home-card"><h3>${title}</h3><a href="${brandUrl}" class="brand-link">${logoHtml}${brandData.brand_name}</a>${currentGrowth !== null ? `<p class="metric"><span class="metric-label">Growth:</span><span class="metric-value">${currentGrowth}</span></p>` : ''}${currentHeat !== null ? `<p class="metric"><span class="metric-label">Heat:</span><span class="metric-value">${currentHeat}</span></p>` : ''}${currentTotal !== null ? `<p class="metric"><span class="metric-label">Total Score:</span><span class="metric-value">${currentTotal}</span></p>` : ''}</div>`;
 }
 
 // Processes data once
@@ -493,10 +503,9 @@ function populateHomepageTable(data) {
         row.insertCell().textContent = brand.currentRank ?? '--';
         
         const brandCell = row.insertCell();
-        const brandSlug = encodeURIComponent(brand.brand_name);
-        const pageUrl = window.location.pathname;
+        const brandUrl = getBrandPageUrl(brand.brand_name);
         const logoHtml = brand.logo ? `<img class="table-logo" src="${brand.logo}" alt="${brand.brand_name}" onerror="this.parentElement.innerHTML = '<span class=\'logo-placeholder\'><i class=\'fas fa-store\'></i></span>'">` : `<span class="logo-placeholder"><i class="fas fa-store"></i></span>`;
-        brandCell.innerHTML = `<a class="brand-table-link" href="${pageUrl}?name=${brandSlug}">${logoHtml}${brand.brand_name}</a>`;
+        brandCell.innerHTML = `<a class="brand-table-link" href="${brandUrl}">${logoHtml}${brand.brand_name}</a>`;
         
         const categoryCell = row.insertCell();
         if (brand.top_category) {
@@ -625,7 +634,7 @@ function showSuggestions() {
             const item = document.createElement('div'); item.className = 'suggestion-item';
              const logoHtml = brand.logo ? `<img src="${brand.logo}" alt="" onerror="this.style.display='none'">` : `<span class="logo-placeholder" style="font-size: 0.8em; padding: 2px;"><i class="fas fa-store"></i></span>`;
             item.innerHTML = `${logoHtml} ${brand.brand_name}`;
-            item.onmousedown = () => { window.location.href = `${window.location.pathname}?name=${encodeURIComponent(brand.brand_name)}`; }; dropdown.appendChild(item);
+            item.onmousedown = () => { window.location.href = getBrandPageUrl(brand.brand_name); }; dropdown.appendChild(item);
         }); dropdown.style.display = 'block';
     } else { dropdown.style.display = 'none'; }
 }
@@ -1370,7 +1379,7 @@ function initializeCustomForm() {
 
 // --- Global Handlers ---
 window.showTrending = function() {
-    const dropdown = document.getElementById('suggestionsDropdown'); if (dropdown) { dropdown.innerHTML = '<div class="suggestion-title">Trending Brands</div>'; TRENDING_BRANDS.forEach(brandName => { const item = document.createElement('div'); item.className = 'suggestion-item'; const brand = allBrandData.find(b=>b.brand_name === brandName); const logo = brand?.logo; const logoHtml = logo ? `<img src="${brand.logo}" alt="" onerror="this.style.display='none'">` : `<span class="logo-placeholder"><i class="fas fa-store"></i></span>`; item.innerHTML = `${logoHtml} ${brandName}`; item.onmousedown = () => { window.location.href = `${window.location.pathname}?name=${encodeURIComponent(brandName)}`; }; dropdown.appendChild(item); }); dropdown.style.display = 'block'; }
+    const dropdown = document.getElementById('suggestionsDropdown'); if (dropdown) { dropdown.innerHTML = '<div class="suggestion-title">Trending Brands</div>'; TRENDING_BRANDS.forEach(brandName => { const item = document.createElement('div'); item.className = 'suggestion-item'; const brand = allBrandData.find(b=>b.brand_name === brandName); const logo = brand?.logo; const logoHtml = logo ? `<img src="${brand.logo}" alt="" onerror="this.style.display='none'">` : `<span class="logo-placeholder"><i class="fas fa-store"></i></span>`; item.innerHTML = `${logoHtml} ${brandName}`; item.onmousedown = () => { window.location.href = getBrandPageUrl(brandName); }; dropdown.appendChild(item); }); dropdown.style.display = 'block'; }
 };
 window.hideTrending = function() {
     setTimeout(() => { const dropdown = document.getElementById('suggestionsDropdown'); if (dropdown) dropdown.style.display = 'none'; }, 150); // Delay to allow click
