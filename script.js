@@ -9,6 +9,18 @@ const chartColors = {
 };
 const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const TRENDING_BRANDS = ["7-Eleven", "Shell Oil", "Dollar General"]; // Use brands from your data
+const FAQ_ITEMS = [
+    { question: "What is the Retail Health Index?", answer: "The index combines visit, spend, and transaction growth into one score so you can quickly benchmark brand momentum." },
+    { question: "How often is the data refreshed?", answer: "Scores update monthly as new mobility and spend intelligence becomes available in pass_by." },
+    { question: "Can I get store-level insights?", answer: "Yes. Upgrade to pass_by Pro to unlock store rankings, visit trade areas, and causal drivers for every brand." }
+];
+const METRIC_TOOLTIPS = {
+    rank: "Rank of the brand based on its Total Score compared with every other brand in the dataset.",
+    scoreChange: "Difference between the current Total Score and the prior month’s score.",
+    currentGrowth: "Weighted YoY movement across visits, spend, and transactions.",
+    currentHeat: "Short-term momentum calculated from month-over-month index changes.",
+    currentTotal: "Combined score blending Growth (long-term) and Heat (short-term)."
+};
 
 function slugifyBrandName(name = '') {
     return String(name || '')
@@ -19,6 +31,50 @@ function slugifyBrandName(name = '') {
 function getBrandPageUrl(name) {
     const slug = slugifyBrandName(name);
     return slug ? `/brands/${slug}/` : '#';
+}
+
+function extractDomainFromUrl(rawUrl) {
+    if (!rawUrl) return null;
+    const normalized = rawUrl.startsWith('http') ? rawUrl : `https://${rawUrl}`;
+    try {
+        return new URL(normalized).hostname;
+    } catch (err) {
+        return null;
+    }
+}
+
+function getBrandLogoUrl(brand = {}) {
+    if (brand.logo && String(brand.logo).trim() !== '') {
+        return brand.logo;
+    }
+    const domain = extractDomainFromUrl(brand.url);
+    if (domain) {
+        return `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
+    }
+    return null;
+}
+
+function createLogoMarkup(brand, options = {}) {
+    const {
+        imgClass = 'logo',
+        placeholderClass = 'logo-placeholder',
+        alt = brand?.brand_name || 'Brand logo'
+    } = options;
+    const logoUrl = getBrandLogoUrl(brand);
+    if (logoUrl) {
+        return `<img src="${logoUrl}" alt="${alt}" class="${imgClass}" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';">
+                <span class="${placeholderClass}" style="display:none;"><i class="fas fa-store"></i></span>`;
+    }
+    return `<span class="${placeholderClass}"><i class="fas fa-store"></i></span>`;
+}
+
+function createHeaderTooltip(text) {
+    if (!text) return '';
+    return `<span class="metric-info" aria-label="info"><i class="fas fa-info"></i><span class="metric-info-text">${text}</span></span>`;
+}
+
+function createHeaderLabel(label, tooltipText) {
+    return `<div class="metric-header"><span class="metric-header-text">${label}</span>${tooltipText ? createHeaderTooltip(tooltipText) : ''}</div>`;
 }
 // --- Homepage Table State Variables ---
 let processedHomepageData = [];
@@ -347,27 +403,38 @@ function renderHomepage(data) {
             ${createHomeCard(hottestBrand, '🔥 Hottest Brand (Recent Heat)')}
             ${createHomeCard(mostConsistentBrand, '📊 Most Consistent Brand (Growth Stability)')}
         </div>
-        <h2 class="table-title">All Brands</h2>
-        <table id="brandsTable">
-            <thead>
-                <tr>
-                    <th class="sortable" data-sort="currentRank">Rank <span class="sort-arrow"></span></th>
-                    <th>Brand</th>
-                    <th id="category-filter-header">Category <i class="fas fa-filter" style="font-size: 0.8em; margin-left: 4px; opacity: 0.7;"></i></th>
-                    <th class="sortable" data-sort="rankChange">Change <span class="sort-arrow"></span></th>
-                    <th class="sortable" data-sort="currentGrowth">Growth <span class="sort-arrow"></span></th>
-                    <th class="sortable" data-sort="currentHeat">Heat <span class="sort-arrow"></span></th>
-                    <th class="sortable" data-sort="currentTotal">Total <span class="sort-arrow"></span></th>
-                </tr>
-            </thead>
-            <tbody id="brandsTableBody"></tbody>
-        </table>`;
+        <section class="surface-panel">
+            <div class="surface-header">
+                <div>
+                    <p class="surface-subtitle">Live leaderboard</p>
+                    <h2 class="table-title">All Brands</h2>
+                </div>
+                <p class="surface-subtitle">Hover the headers to learn how scores are calculated.</p>
+            </div>
+            <div class="table-scroll">
+                <table id="brandsTable">
+                    <thead>
+                        <tr>
+                            <th class="sortable" data-sort="currentRank">${createHeaderLabel('Rank', METRIC_TOOLTIPS.rank)}<span class="sort-arrow"></span></th>
+                            <th>Brand</th>
+                            <th id="category-filter-header">Category <i class="fas fa-filter" style="font-size: 0.8em; margin-left: 4px; opacity: 0.7;"></i></th>
+                            <th class="sortable" data-sort="scoreChange">${createHeaderLabel('Change', METRIC_TOOLTIPS.scoreChange)}<span class="sort-arrow"></span></th>
+                            <th class="sortable" data-sort="currentGrowth">${createHeaderLabel('Growth', METRIC_TOOLTIPS.currentGrowth)}<span class="sort-arrow"></span></th>
+                            <th class="sortable" data-sort="currentHeat">${createHeaderLabel('Heat', METRIC_TOOLTIPS.currentHeat)}<span class="sort-arrow"></span></th>
+                            <th class="sortable" data-sort="currentTotal">${createHeaderLabel('Total', METRIC_TOOLTIPS.currentTotal)}<span class="sort-arrow"></span></th>
+                        </tr>
+                    </thead>
+                    <tbody id="brandsTableBody"></tbody>
+                </table>
+            </div>
+        </section>`;
 
     // --- Process data and set up interactive table ---
     processHomepageData(data); // Process and store in processedHomepageData
     addTableSorting();
     setupCategoryFilter();
     updateHomepageTable(); // Initial render
+    renderFAQSection(contentDiv);
 }
 
 function createHomeCard(brandData, title) {
@@ -378,7 +445,7 @@ function createHomeCard(brandData, title) {
     const currentHeat = heatTimeSeries.scores[heatTimeSeries.scores.length - 1];
     const currentTotal = (currentGrowth !== null && currentHeat !== null) ? Math.round((currentGrowth + currentHeat) / 2) : null;
     const brandUrl = getBrandPageUrl(brandData.brand_name);
-    const logoHtml = brandData.logo ? `<img src="${brandData.logo}" alt="${brandData.brand_name}" onerror="this.parentElement.innerHTML = '<span class=\'logo-placeholder\'><i class=\'fas fa-store\'></i></span>'">` : `<span class="logo-placeholder"><i class="fas fa-store"></i></span>`;
+    const logoHtml = createLogoMarkup(brandData, { imgClass: 'logo', placeholderClass: 'logo-placeholder' });
     return `<div class="home-card"><h3>${title}</h3><a href="${brandUrl}" class="brand-link">${logoHtml}${brandData.brand_name}</a>${currentGrowth !== null ? `<p class="metric"><span class="metric-label">Growth:</span><span class="metric-value">${currentGrowth}</span></p>` : ''}${currentHeat !== null ? `<p class="metric"><span class="metric-label">Heat:</span><span class="metric-value">${currentHeat}</span></p>` : ''}${currentTotal !== null ? `<p class="metric"><span class="metric-label">Total Score:</span><span class="metric-value">${currentTotal}</span></p>` : ''}</div>`;
 }
 
@@ -393,10 +460,13 @@ function processHomepageData(data) {
             const totalTS = calculateScoreTimeSeries(brand, 'total');
             const growthTS = calculateScoreTimeSeries(brand, 'growth');
             const heatTS = calculateScoreTimeSeries(brand, 'heat');
+            const currentTotal = totalTS.scores[totalTS.scores.length - 1] ?? null;
+            const previousTotal = totalTS.scores[totalTS.scores.length - 2] ?? null;
             return {
                 ...brand,
-                currentTotal: totalTS.scores[totalTS.scores.length - 1] ?? null,
-                previousTotal: totalTS.scores[totalTS.scores.length - 2] ?? null,
+                currentTotal,
+                previousTotal,
+                scoreChange: (currentTotal !== null && previousTotal !== null) ? parseFloat((currentTotal - previousTotal).toFixed(1)) : null,
                 currentGrowth: growthTS.scores[growthTS.scores.length - 1] ?? null,
                 currentHeat: heatTS.scores[heatTS.scores.length - 1] ?? null,
             };
@@ -414,18 +484,11 @@ function processHomepageData(data) {
         return map;
     };
     const currentRankMap = createRankMap(dataWithScores, 'currentTotal');
-    const previousRankMap = createRankMap(dataWithScores, 'previousTotal');
 
-    // Combine data and calculate rank change
-    processedHomepageData = dataWithScores.map(brand => {
-        const currentRank = currentRankMap.get(brand.brand_name) ?? null;
-        const previousRank = previousRankMap.get(brand.brand_name) ?? null;
-        let rankChange = null;
-        if (currentRank !== null && previousRank !== null) {
-            rankChange = previousRank - currentRank;
-        }
-        return { ...brand, currentRank, rankChange };
-    });
+    processedHomepageData = dataWithScores.map(brand => ({
+        ...brand,
+        currentRank: currentRankMap.get(brand.brand_name) ?? null
+    }));
 
     // Get all unique categories for filter
     const categorySet = new Set();
@@ -500,34 +563,46 @@ function populateHomepageTable(data) {
         if (brand.currentRank === null && selectedCategories.length === 0) return;
 
         const row = tableBody.insertRow();
-        row.insertCell().textContent = brand.currentRank ?? '--';
+        const createCell = (label) => {
+            const cell = row.insertCell();
+            cell.dataset.label = label;
+            return cell;
+        };
+
+        const rankCell = createCell('Rank');
+        rankCell.textContent = brand.currentRank ?? '--';
         
-        const brandCell = row.insertCell();
+        const brandCell = createCell('Brand');
         const brandUrl = getBrandPageUrl(brand.brand_name);
-        const logoHtml = brand.logo ? `<img class="table-logo" src="${brand.logo}" alt="${brand.brand_name}" onerror="this.parentElement.innerHTML = '<span class=\'logo-placeholder\'><i class=\'fas fa-store\'></i></span>'">` : `<span class="logo-placeholder"><i class="fas fa-store"></i></span>`;
+        const logoHtml = createLogoMarkup(brand, { imgClass: 'table-logo', placeholderClass: 'logo-placeholder' });
         brandCell.innerHTML = `<a class="brand-table-link" href="${brandUrl}">${logoHtml}${brand.brand_name}</a>`;
         
-        const categoryCell = row.insertCell();
+        const categoryCell = createCell('Category');
         if (brand.top_category) {
             categoryCell.innerHTML = `<span class="category-pill">${brand.top_category}</span>`;
         } else {
             categoryCell.textContent = 'N/A';
         }
         
-        const changeCell = row.insertCell();
-        if (brand.rankChange !== null && brand.rankChange !== 0) {
-            const direction = brand.rankChange > 0 ? 'positive' : 'negative';
-            const arrow = brand.rankChange > 0 ? '▲' : '▼';
-            changeCell.innerHTML = `<span class="rank-change ${direction}">${arrow} ${Math.abs(brand.rankChange)}</span>`;
-        } else if (brand.rankChange === 0) {
-            changeCell.innerHTML = `<span class="rank-change neutral">–</span>`;
+        const changeCell = createCell('Change');
+        if (brand.scoreChange !== null) {
+            const direction = brand.scoreChange > 0 ? 'positive' : (brand.scoreChange < 0 ? 'negative' : 'neutral');
+            const arrow = brand.scoreChange > 0 ? '▲' : (brand.scoreChange < 0 ? '▼' : '•');
+            const value = Math.abs(brand.scoreChange).toFixed(1);
+            const suffix = brand.scoreChange === 0 ? '0' : value;
+            changeCell.innerHTML = `<span class="rank-change ${direction}">${arrow} ${suffix} pts</span>`;
         } else {
-            changeCell.innerHTML = `<span class="rank-change neutral">New</span>`;
+            changeCell.innerHTML = `<span class="rank-change neutral">--</span>`;
         }
 
-        row.insertCell().textContent = brand.currentGrowth ?? '--';
-        row.insertCell().textContent = brand.currentHeat ?? '--';
-        row.insertCell().textContent = brand.currentTotal ?? '--';
+        const growthCell = createCell('Growth');
+        growthCell.textContent = brand.currentGrowth ?? '--';
+
+        const heatCell = createCell('Heat');
+        heatCell.textContent = brand.currentHeat ?? '--';
+
+        const totalCell = createCell('Total');
+        totalCell.textContent = brand.currentTotal ?? '--';
     });
     console.log("Finished adding rows.");
 }
@@ -619,6 +694,35 @@ function setupCategoryFilter() {
 }
 
 
+function renderFAQSection(parentEl) {
+    if (!parentEl || parentEl.querySelector('#globalFaqSection')) return;
+    const section = document.createElement('section');
+    section.id = 'globalFaqSection';
+    section.className = 'faq-section';
+    const faqItemsHtml = FAQ_ITEMS.map((item, idx) => `
+        <li class="faq-item">
+            <button class="faq-question" type="button" aria-expanded="false">
+                <span>${item.question}</span>
+                <i class="fas fa-chevron-down"></i>
+            </button>
+            <div class="faq-answer" id="faq-answer-${idx}">
+                <p>${item.answer}</p>
+            </div>
+        </li>
+    `).join('');
+    section.innerHTML = `<h3>Retail Health FAQ</h3><ul class="faq-list">${faqItemsHtml}</ul>`;
+    parentEl.appendChild(section);
+    section.querySelectorAll('.faq-question').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const answer = btn.nextElementSibling;
+            const isOpen = answer.classList.contains('open');
+            btn.classList.toggle('open', !isOpen);
+            answer.classList.toggle('open', !isOpen);
+            btn.setAttribute('aria-expanded', String(!isOpen));
+        });
+    });
+}
+
 // --- Search / Trending ---
 function showSuggestions() {
     const input = document.getElementById('mainSearchInput'); const dropdown = document.getElementById('suggestionsDropdown'); const searchTerm = input.value.toLowerCase();
@@ -632,7 +736,8 @@ function showSuggestions() {
     if (suggestions.length > 0) {
         suggestions.forEach(brand => {
             const item = document.createElement('div'); item.className = 'suggestion-item';
-             const logoHtml = brand.logo ? `<img src="${brand.logo}" alt="" onerror="this.style.display='none'">` : `<span class="logo-placeholder" style="font-size: 0.8em; padding: 2px;"><i class="fas fa-store"></i></span>`;
+             const logoUrl = getBrandLogoUrl(brand);
+             const logoHtml = logoUrl ? `<img src="${logoUrl}" alt="" onerror="this.style.display='none'">` : `<span class="logo-placeholder" style="font-size: 0.8em; padding: 2px;"><i class="fas fa-store"></i></span>`;
             item.innerHTML = `${logoHtml} ${brand.brand_name}`;
             item.onmousedown = () => { window.location.href = getBrandPageUrl(brand.brand_name); }; dropdown.appendChild(item);
         }); dropdown.style.display = 'block';
@@ -688,10 +793,7 @@ function renderBrandPage(brandName) {
     const prevTxnsIndex=lastTxnsIndexArr.length>1?lastTxnsIndexArr[0]:null;
     const txnsIndexChange=(prevTxnsIndex!==null&&latestTxnsIndex!==null&&prevTxnsIndex!==0)?((latestTxnsIndex-prevTxnsIndex)/prevTxnsIndex)*100:null;
 
-    const logoHtml = brandData.logo
-            ? `<img src="${brandData.logo}" alt="${brandData.brand_name}" class="logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';">
-               <span class="logo-placeholder" style="display: none;"><i class="fas fa-store"></i></span>`
-            : `<span class="logo-placeholder"><i class="fas fa-store"></i></span>`;
+    const logoHtml = createLogoMarkup(brandData, { imgClass: 'logo', placeholderClass: 'logo-placeholder' });
 
     // *** UPDATED: New Form HTML is now included here ***
     const customFormHTML = `
@@ -974,6 +1076,7 @@ function renderBrandPage(brandName) {
                 </aside>
             </div>
         `;
+        renderFAQSection(contentDiv);
         console.log("Brand Page HTML rendered.");
 
         setTimeout(() => {
@@ -1133,6 +1236,20 @@ function initializeCustomForm() {
         }
 
         function fetchData() {
+            if (Array.isArray(allBrandData) && allBrandData.length) {
+                brandData = allBrandData.map(brand => {
+                    const latestVisitChange = getLastNNumbers(brand.visits_yoy_array, 1)[0] ?? null;
+                    return {
+                        name: brand.brand_name,
+                        top_category: brand.top_category,
+                        place_count: brand.place_count,
+                        yoy_visit_change_pct: latestVisitChange,
+                        logo: getBrandLogoUrl(brand)
+                    };
+                });
+                renderModalResults(brandData);
+                return;
+            }
             Papa.parse(dataUrl, {
                 download: true, header: true, dynamicTyping: true, skipEmptyLines: true,
                 complete: function(results) { brandData = results.data; renderModalResults(brandData); },
@@ -1379,7 +1496,7 @@ function initializeCustomForm() {
 
 // --- Global Handlers ---
 window.showTrending = function() {
-    const dropdown = document.getElementById('suggestionsDropdown'); if (dropdown) { dropdown.innerHTML = '<div class="suggestion-title">Trending Brands</div>'; TRENDING_BRANDS.forEach(brandName => { const item = document.createElement('div'); item.className = 'suggestion-item'; const brand = allBrandData.find(b=>b.brand_name === brandName); const logo = brand?.logo; const logoHtml = logo ? `<img src="${brand.logo}" alt="" onerror="this.style.display='none'">` : `<span class="logo-placeholder"><i class="fas fa-store"></i></span>`; item.innerHTML = `${logoHtml} ${brandName}`; item.onmousedown = () => { window.location.href = getBrandPageUrl(brandName); }; dropdown.appendChild(item); }); dropdown.style.display = 'block'; }
+    const dropdown = document.getElementById('suggestionsDropdown'); if (dropdown) { dropdown.innerHTML = '<div class="suggestion-title">Trending Brands</div>'; TRENDING_BRANDS.forEach(brandName => { const item = document.createElement('div'); item.className = 'suggestion-item'; const brand = allBrandData.find(b=>b.brand_name === brandName) || { brand_name: brandName }; const logoUrl = getBrandLogoUrl(brand); const logoHtml = logoUrl ? `<img src="${logoUrl}" alt="" onerror="this.style.display='none'">` : `<span class="logo-placeholder"><i class="fas fa-store"></i></span>`; item.innerHTML = `${logoHtml} ${brandName}`; item.onmousedown = () => { window.location.href = getBrandPageUrl(brandName); }; dropdown.appendChild(item); }); dropdown.style.display = 'block'; }
 };
 window.hideTrending = function() {
     setTimeout(() => { const dropdown = document.getElementById('suggestionsDropdown'); if (dropdown) dropdown.style.display = 'none'; }, 150); // Delay to allow click

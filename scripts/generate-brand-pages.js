@@ -4,6 +4,7 @@ const path = require('path');
 const ROOT = path.resolve(__dirname, '..');
 const DIST = path.join(ROOT, 'dist');
 const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const DEFAULT_META_IMAGE = 'https://passby.com/wp-content/uploads/2025/10/Artboard-1.jpg';
 
 const baseHtml = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 const brandData = JSON.parse(fs.readFileSync(path.join(ROOT, 'data.json'), 'utf8'));
@@ -49,6 +50,9 @@ function buildBrandHtml(brand, homeRelative) {
     const slug = slugify(brand.brand_name);
     const metaDescription = createMetaDescription(brand);
     const canonicalHref = PUBLIC_BASE_URL ? `${PUBLIC_BASE_URL}/brands/${slug}/` : '';
+    const ogImage = getBrandLogoUrl(brand) || DEFAULT_META_IMAGE;
+    const ogTitle = `${brand.brand_name} – Retail Health Index`;
+    const ogDescription = metaDescription;
 
     let html = baseHtml;
     html = html.replace('<body data-page-type="home" data-home-url="/" data-data-url="/data.json">', `<body data-page-type="brand" data-home-url="${escapeAttr(homeUrl)}" data-data-url="${escapeAttr(USE_RELATIVE_LINKS ? dataPath : '/data.json')}" data-brand-name="${escapeAttr(brand.brand_name)}">`);
@@ -56,7 +60,20 @@ function buildBrandHtml(brand, homeRelative) {
     html = html.replace('<script src="/script.js"></script>', `<script src="${USE_RELATIVE_LINKS ? scriptPath : '/script.js'}"></script>`);
     html = html.replace('<div class="loading">Loading Retail Data...</div>', brandMarkup);
     html = html.replace('<title>Retail Health Index</title>', `<title>${escapeHtml(brand.brand_name)} – Retail Health Index</title>`);
-    html = html.replace('</head>', `    <meta name="description" content="${escapeAttr(metaDescription)}">\n${canonicalHref ? `    <link rel="canonical" href="${escapeAttr(canonicalHref)}">\n` : ''}</head>`);
+    const metaBlock = [
+        `    <meta name="description" content="${escapeAttr(metaDescription)}">`,
+        `    <meta property="og:title" content="${escapeAttr(ogTitle)}">`,
+        `    <meta property="og:description" content="${escapeAttr(ogDescription)}">`,
+        `    <meta property="og:type" content="article">`,
+        `    <meta property="og:image" content="${escapeAttr(ogImage)}">`,
+        canonicalHref ? `    <meta property="og:url" content="${escapeAttr(canonicalHref)}">` : '',
+        `    <meta name="twitter:card" content="summary_large_image">`,
+        `    <meta name="twitter:title" content="${escapeAttr(ogTitle)}">`,
+        `    <meta name="twitter:description" content="${escapeAttr(ogDescription)}">`,
+        `    <meta name="twitter:image" content="${escapeAttr(ogImage)}">`,
+        canonicalHref ? `    <link rel="canonical" href="${escapeAttr(canonicalHref)}">` : ''
+    ].filter(Boolean).join('\n');
+    html = html.replace('</head>', `${metaBlock}\n</head>`);
     return html;
 }
 
@@ -96,10 +113,7 @@ function buildBrandMarkup(brandData, homeUrl) {
     const prevTxnsIndex = lastTxnsIndexArr.length > 1 ? lastTxnsIndexArr[0] : null;
     const txnsIndexChange = (prevTxnsIndex !== null && latestTxnsIndex !== null && prevTxnsIndex !== 0) ? ((latestTxnsIndex - prevTxnsIndex) / prevTxnsIndex) * 100 : null;
 
-    const logoHtml = brandData.logo
-        ? `<img src="${brandData.logo}" alt="${brandData.brand_name}" class="logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';">
-               <span class="logo-placeholder" style="display: none;"><i class="fas fa-store"></i></span>`
-        : `<span class="logo-placeholder"><i class="fas fa-store"></i></span>`;
+    const logoHtml = createLogoMarkup(brandData, 'logo', 'logo-placeholder');
 
     const customFormHTML = `
         <div class="main-container">
@@ -352,6 +366,36 @@ function createMetaDescription(brand) {
         brand.url ? `Site: ${brand.url}.` : ''
     ];
     return parts.filter(Boolean).join(' ');
+}
+
+function extractDomain(rawUrl) {
+    if (!rawUrl) return null;
+    const normalized = rawUrl.startsWith('http') ? rawUrl : `https://${rawUrl}`;
+    try {
+        return new URL(normalized).hostname;
+    } catch (err) {
+        return null;
+    }
+}
+
+function getBrandLogoUrl(brand = {}) {
+    if (brand.logo && String(brand.logo).trim() !== '') {
+        return brand.logo;
+    }
+    const domain = extractDomain(brand.url);
+    if (domain) {
+        return `https://www.google.com/s2/favicons?domain=${domain}&sz=128`;
+    }
+    return null;
+}
+
+function createLogoMarkup(brand, imgClass = 'logo', placeholderClass = 'logo-placeholder') {
+    const logoUrl = getBrandLogoUrl(brand);
+    if (logoUrl) {
+        return `<img src="${logoUrl}" alt="${escapeAttr(brand.brand_name)}" class="${imgClass}" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';">
+                <span class="${placeholderClass}" style="display: none;"><i class="fas fa-store"></i></span>`;
+    }
+    return `<span class="${placeholderClass}"><i class="fas fa-store"></i></span>`;
 }
 
 function getLastNNumbers(arr, n) {

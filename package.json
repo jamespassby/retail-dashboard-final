@@ -3,6 +3,8 @@
   "version": "1.1.0",
   "private": true,
   "scripts": {
-    "build:brands": "node scripts/generate-brand-pages.js"
+    "build:brands": "node scripts/generate-brand-pages.js",
+    "logos": "node scripts/fetch-logos.js",
+    "start": "npx http-server dist -p 4173"
   }
 }
